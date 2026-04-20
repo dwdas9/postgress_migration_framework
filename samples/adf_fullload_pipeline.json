@@ -1,0 +1,226 @@
+{
+  "name": "FullLoad_PostgreSQL_Migration",
+  "properties": {
+    "description": "End-to-end full load migration pipeline for PostgreSQL v11 to v14",
+    "activities": [
+      {
+        "name": "GetSourceTableList",
+        "type": "Lookup",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "7.00:00:00",
+          "retry": 3,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "source": {
+            "type": "PostgreSqlSource",
+            "query": "SELECT schemaname as schema_name, tablename as table_name FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema') ORDER BY tablename"
+          },
+          "dataset": {
+            "referenceName": "SourcePostgreSqlDB",
+            "type": "DatasetReference"
+          },
+          "firstRowOnly": false
+        }
+      },
+      {
+        "name": "ForEachTable",
+        "type": "ForEach",
+        "dependsOn": [
+          {
+            "activity": "GetSourceTableList",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "userProperties": [],
+        "typeProperties": {
+          "items": {
+            "value": "@activity('GetSourceTableList').output.value",
+            "type": "Expression"
+          },
+          "activities": [
+            {
+              "name": "ExtractTableData",
+              "type": "Copy",
+              "dependsOn": [],
+              "policy": {
+                "timeout": "7.00:00:00",
+                "retry": 3,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "userProperties": [],
+              "typeProperties": {
+                "source": {
+                  "type": "PostgreSqlSource",
+                  "query": "SELECT * FROM @{item().schema_name}.@{item().table_name}",
+                  "queryTimeout": "02:00:00"
+                },
+                "sink": {
+                  "type": "PostgreSqlSink",
+                  "preCopyScript": "TRUNCATE raw_schema.@{item().table_name}",
+                  "writeBatchSize": 10000,
+                  "writeBatchTimeout": "00:30:00"
+                },
+                "enableStaging": true,
+                "stagingSettings": {
+                  "linkedServiceName": {
+                    "referenceName": "AzureBlobStorageStaging",
+                    "type": "LinkedServiceReference"
+                  },
+                  "path": "staging/@{item().table_name}",
+                  "enableCompression": true
+                },
+                "parallelCopies": 4,
+                "translator": {
+                  "type": "TabularTranslator",
+                  "mappings": [],
+                  "typeConversion": true,
+                  "typeConversionSettings": {
+                    "allowImplicitConversion": true,
+                    "treatBooleanAsNumber": false
+                  }
+                }
+              },
+              "inputs": [
+                {
+                  "referenceName": "SourcePostgreSqlDB",
+                  "type": "DatasetReference"
+                }
+              ],
+              "outputs": [
+                {
+                  "referenceName": "TargetPostgreSqlDB_Raw",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "TableName": "@item().table_name"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "QueueValidationJob",
+              "type": "ExecuteFunction",
+              "dependsOn": [
+                {
+                  "activity": "ExtractTableData",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "userProperties": [],
+              "typeProperties": {
+                "functionName": "ValidationEngine",
+                "method": "POST",
+                "body": {
+                  "value": "@json(concat('{', '\"table\":\"', item().table_name, '\",\"schema\":\"', item().schema_name, '\",\"correlation_id\":\"', pipeline().RunId, '\"}'))",
+                  "type": "Expression"
+                }
+              }
+            },
+            {
+              "name": "LogTableCompletion",
+              "type": "Lookup",
+              "dependsOn": [
+                {
+                  "activity": "QueueValidationJob",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ],
+              "policy": {
+                "timeout": "7.00:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "userProperties": [],
+              "typeProperties": {
+                "source": {
+                  "type": "PostgreSqlSource",
+                  "query": "INSERT INTO migration_validation_log (table_name, validation_type, validation_status) VALUES ('@{item().table_name}', 'FULL_LOAD', 'QUEUED'); SELECT 1;"
+                },
+                "dataset": {
+                  "referenceName": "TargetPostgreSqlDB_Raw",
+                  "type": "DatasetReference"
+                },
+                "firstRowOnly": true
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "UpdateMigrationLog",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [
+          {
+            "activity": "ForEachTable",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "7.00:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "storedProcedureName": "[dbo].[UpdateMigrationStatus]",
+          "storedProcedureParameters": {
+            "PipelineRunId": {
+              "value": {
+                "value": "@pipeline().RunId",
+                "type": "Expression"
+              },
+              "type": "String"
+            },
+            "Status": {
+              "value": "COMPLETED",
+              "type": "String"
+            }
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "AzureSqlDatabase",
+          "type": "LinkedServiceReference"
+        }
+      }
+    ],
+    "parameters": {
+      "SourceDatabase": {
+        "type": "string",
+        "defaultValue": "production"
+      },
+      "TargetDatabase": {
+        "type": "string",
+        "defaultValue": "production"
+      }
+    },
+    "variables": {
+      "PipelineStartTime": {
+        "type": "String"
+      }
+    },
+    "folder": {
+      "name": "PostgreSQL_Migration"
+    },
+    "annotations": [],
+    "lastPublishTime": "2024-01-15T10:30:00Z"
+  },
+  "type": "Microsoft.DataFactory/factories/pipelines"
+}
