@@ -2,19 +2,55 @@
 
 ## Executive Overview
 
-This document outlines the phased migration strategy for moving PostgreSQL from on-premises (v11) to Azure PostgreSQL (v14). The strategy emphasizes zero-downtime migration, comprehensive validation, and rollback capability throughout the 8-week implementation window.
+This document outlines the **10-phase migration strategy** for moving PostgreSQL from on-premises (v11) to Azure PostgreSQL (v14). The strategy emphasizes:
 
-## Migration Approach: Phased & Incremental
+- **Enterprise-grade approach**: 72-week program with comprehensive planning
+- **Zero-downtime migration**: Parallel run enables cutover without extended downtime
+- **Risk mitigation**: Multiple gates, validation at each step, proven rollback capability
+- **Stakeholder governance**: 5 phase gates with Steering Committee sign-off
 
-### Philosophy
-- **Minimize Risk**: Validate at every step before proceeding
-- **Enable Rollback**: Source system remains active throughout
-- **Incremental Load**: Start small, build confidence, scale up
-- **Real-Time Validation**: Catch discrepancies immediately, not post-cutover
+### Program Timeline
+```
+Phase 1: Discovery & Assessment       (4 weeks)   → Gate 1
+Phase 2: Architecture & Design        (6 weeks)   → Gate 2
+Phase 3: Environment Setup            (4 weeks)   → Gate 3
+Phase 4: Migration Development        (10 weeks)  → Gate 4
+Phase 5: Validation Framework Build   (8 weeks)   → Gate 5
+Phase 6: System Integration Testing   (6 weeks)   → Gate 6
+Phase 7: Business Validation          (12 weeks)  → Gate 7
+Phase 8: Parallel Run                 (10 weeks)  → Gate 8
+Phase 9: Production Cutover           (6 weeks)   → Gate 9
+Phase 10: Post-Go-Live Support        (6 weeks)   → Gate 10
+
+TOTAL: 72 weeks (~18 months)
+BUDGET: $509,000
+```
 
 ---
 
-## Phase 1: Infrastructure & Planning (Weeks 1-2)
+## Migration Approach: Enterprise Phased & Incremental
+
+### Philosophy
+- **Minimize Risk**: Validate at every step; no skipping gates
+- **Enable Rollback**: Source system remains active throughout phases 1-8
+- **Incremental Load**: Start small (10% data), build confidence, scale to 100%
+- **Real-Time Validation**: Catch discrepancies in hours, not post-cutover
+- **Stakeholder Alignment**: Steering Committee sign-off at each phase gate
+
+---
+
+## Phase 1: Infrastructure & Planning (Weeks 1-2 → NOW EXTENDED TO WEEKS 1-4)
+
+### Objectives
+1. ✅ Comprehensive source system analysis & data profiling
+2. ✅ Stakeholder alignment on requirements & success criteria
+3. ✅ Risk identification & mitigation planning
+4. ✅ Budget & resource approval
+5. ✅ Architecture direction setting
+
+### Activities (EXPANDED)
+
+#### Week 1-2: Source System Analysis & Data Profiling
 
 ### Objectives
 1. ✅ Provision all Azure resources

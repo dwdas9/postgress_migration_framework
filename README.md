@@ -19,8 +19,9 @@ postgres-migration-validation-azure/
 │   ├── ARCHITECTURE.md          # High-level architecture
 │   └── ARCHITECTURE_DIAGRAMS.md # Mermaid visualizations
 ├── migration/                    # Migration execution
-│   ├── MIGRATION_STRATEGY.md    # Phased migration approach
-│   └── SCHEMA_MIGRATION.md      # v11 → v14 compatibility
+│   ├── MIGRATION_STRATEGY.md    # 10-phase approach, 72-week timeline
+│   ├── SCHEMA_MIGRATION.md      # v11 → v14 compatibility
+│   └── CUTOVER_PLAN.md          # Production cutover procedures
 ├── data-validation/              # Validation framework
 │   ├── VALIDATION_FRAMEWORK.md  # Validation rules & KPIs
 │   ├── azure-functions/         # Python validation engine
@@ -30,11 +31,15 @@ postgres-migration-validation-azure/
 ├── governance/                   # Stakeholder management
 │   └── GOVERNANCE.md            # Roles, approvals, compliance
 ├── planning/                     # Project execution
-│   └── ROADMAP.md               # Week-by-week timeline
+│   ├── ROADMAP.md               # Comprehensive 72-week timeline
+│   └── SPRINT_PLAN.md           # Sprint structure & execution
 ├── samples/                      # Templates & examples
 │   ├── sample_migration_queries.sql
 │   └── adf_fullload_pipeline.json
 ├── docs/                         # Additional documentation
+│   ├── RUNBOOK.md               # Operational procedures
+│   ├── CONFIGURATION_REFERENCE.md
+│   └── LESSONS_LEARNED.md       # Enterprise risks & lessons
 └── README.md                     # This file
 ```
 
@@ -43,10 +48,11 @@ postgres-migration-validation-azure/
 | File | Purpose | Audience |
 |------|---------|----------|
 | [ARCHITECTURE.md](architecture/ARCHITECTURE.md) | System design, components, data flow | Architects, Engineers |
-| [MIGRATION_STRATEGY.md](migration/MIGRATION_STRATEGY.md) | Phased approach, 8-week timeline | Project managers, Engineers |
+| [MIGRATION_STRATEGY.md](migration/MIGRATION_STRATEGY.md) | 10-phase approach, 72-week timeline | Project managers, Engineers |
 | [VALIDATION_FRAMEWORK.md](data-validation/VALIDATION_FRAMEWORK.md) | Data quality rules, KPIs | QA, Data engineers |
 | [GOVERNANCE.md](governance/GOVERNANCE.md) | Stakeholders, approvals, compliance | Leadership, Compliance |
-| [ROADMAP.md](planning/ROADMAP.md) | Sprint breakdown, week-by-week plan | All team members |
+| [ROADMAP.md](planning/ROADMAP.md) | Comprehensive 72-week plan with budgets | All team members |
+| [CUTOVER_PLAN.md](migration/CUTOVER_PLAN.md) | Production cutover & rollback procedures | Operations, DBA team |
 
 ---
 
@@ -118,42 +124,52 @@ React Dashboard (Real-time Monitoring)
 
 ---
 
-## 🎯 Migration Phases (8 Weeks)
+## 🎯 Migration Phases (72-Week Program)
 
-### Phase 1: Infrastructure Setup (Week 1-2)
-- Provision Azure resources
-- Establish network connectivity (VPN + ExpressRoute)
-- Deploy monitoring & security
+### 10-Phase Enterprise Migration Program
 
-**Outcome**: Gate 1 ✅ - Infrastructure ready
+**Phase 1: Discovery & Assessment** (4 weeks)
+- Source system analysis, data profiling, stakeholder alignment
+- **Outcome**: Gate 1 ✅ - Requirements & risk register approved
 
-### Phase 2: Full Load Migration (Week 3-4)
-- Schema migration (v11 → v14 compatibility)
-- Extract all data from source
-- Full validation suite (100% pass required)
+**Phase 2: Architecture & Design** (6 weeks)
+- Azure architecture design, security framework, integration planning
+- **Outcome**: Gate 2 ✅ - Architecture approved by CTO
 
-**Outcome**: Gate 2 ✅ - All data migrated & validated
+**Phase 3: Environment Setup** (4 weeks)
+- Azure resource provisioning, network connectivity, monitoring deployment
+- **Outcome**: Gate 3 ✅ - Infrastructure ready & tested
 
-### Phase 3: Incremental Sync (Week 5-6)
-- Enable Change Data Capture (CDC)
-- Daily delta loads with real-time validation
-- Business user UAT (critical scenarios)
+**Phase 4: Migration Development** (10 weeks)
+- Schema migration, ETL pipeline development, full data load (45.3M records)
+- **Outcome**: Gate 4 ✅ - 100% data migrated & validated
 
-**Outcome**: Gate 3 ✅ - Incremental validation stable
+**Phase 5: Validation Framework Build** (8 weeks)
+- Azure Functions validation engine (12 functions), React dashboard, monitoring
+- **Outcome**: Gate 5 ✅ - Validation framework operational
 
-### Phase 4: Pre-Cutover Validation (Week 7)
-- Final sync & read-only testing
-- Application compatibility validation
-- Cutover dry-run & rollback rehearsal
+**Phase 6: System Integration Testing** (6 weeks)
+- End-to-end testing (400+ test cases), performance tuning, load testing
+- **Outcome**: Gate 6 ✅ - System integration complete
 
-**Outcome**: Gate 4 ✅ - Ready for production cutover
+**Phase 7: Business Validation** (12 weeks)
+- Staging UAT by all departments, issue resolution, extended validation
+- **Outcome**: Gate 7 ✅ - Business users sign off
 
-### Phase 5: Cutover & Go-Live (Week 8)
-- Production switchover (2-hour downtime)
-- Immediate post-cutover validation
-- Stabilization (24/7 monitoring)
+**Phase 8: Parallel Run** (10 weeks)
+- Dual system operation, daily reconciliation, cutover rehearsal
+- **Outcome**: Gate 8 ✅ - Ready for production cutover
 
-**Outcome**: Gate 5 ✅ - Live on Azure PostgreSQL v14
+**Phase 9: Production Cutover** (6 weeks)
+- Delta migration, application switchover (2-3 hour window), go-live stabilization
+- **Outcome**: Gate 9 ✅ - System live on Azure
+
+**Phase 10: Post-Go-Live Support** (6 weeks)
+- 24/7 hypercare support, optimization, lessons learned, project closure
+- **Outcome**: Gate 10 ✅ - Project complete
+
+**Total Program Duration**: 72 weeks (~18 months including post-go-live)
+**Total Investment**: $509,000
 
 ---
 
@@ -161,11 +177,11 @@ React Dashboard (Real-time Monitoring)
 
 | Role | Responsibilities | Approval Authority |
 |------|------------------|-------------------|
-| **Steering Committee** | Budget, phase gates, escalation | ✅ Executive decisions |
-| **Data Governance** | Validation rules, compliance, classification | ✅ Data policies |
-| **IT Infrastructure** | Azure resources, networking, security | ✅ Infrastructure changes |
-| **Business Users** | Business rule validation, UAT sign-off | ✅ Cutover readiness |
-| **Migration Team** | Day-to-day execution, monitoring, issues | ✅ Technical decisions |
+| **Steering Committee** | Budget, phase gates, escalation, executive decisions | ✅ Go/No-Go decisions |
+| **Data Governance Team** | Validation rules, compliance, data classification, audit | ✅ Data policies & controls |
+| **IT Infrastructure** | Azure resources, networking, security, operations | ✅ Infrastructure changes |
+| **Business Users** | Business rule validation, UAT, cutover readiness | ✅ Functional sign-off |
+| **Migration Team** | Day-to-day execution, monitoring, issue resolution | ✅ Technical decisions |
 
 ---
 
